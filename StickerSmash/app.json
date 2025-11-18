@@ -2,10 +2,11 @@
   "expo": {
     "name": "StickerSmash",
     "slug": "StickerSmash",
+    "owner": "jb28",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "stickersmash",
+    "scheme": "eventlink",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
