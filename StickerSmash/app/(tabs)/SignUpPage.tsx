@@ -1,3 +1,4 @@
+import Auth from '@/components/Auth';
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet, ScrollView } from 'react-native';
 
@@ -54,6 +55,8 @@ const SignupPage: React.FC = () => {
       <View style={styles.buttonContainer}>
         <Button title="Sign Up" onPress={handleSignup} color="#4285F4" />
       </View>
+
+      <Auth />
     </ScrollView>
   );
 };
