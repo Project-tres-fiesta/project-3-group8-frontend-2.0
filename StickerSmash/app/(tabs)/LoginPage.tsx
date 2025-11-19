@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, NativeSyntheticEvent, TextInputChangeEventData } from 'react-native';
+import GitHubTestLogin from '@/components/GitHubLogin';
+// import GoogleTestLogin from '@/components/GoogleLogin';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -46,6 +48,7 @@ const LoginPage: React.FC = () => {
           />
           <Text style={styles.buttonText}>Continue with Google</Text>
         </TouchableOpacity>
+        <GitHubTestLogin />
       </View>
     </View>
   );
