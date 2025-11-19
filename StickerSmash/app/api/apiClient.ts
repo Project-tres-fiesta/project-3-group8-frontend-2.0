@@ -25,4 +25,10 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
+
+export async function getUsers() {
+  const res = await apiClient.get("/api/users");
+  return res.data;
+}
+
 export default apiClient;

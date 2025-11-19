@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { getUsers } from '../apiClient';
 
 const HomePage: React.FC = () => {
+  
+  const [users, setUsers] = useState<any[]>([]);
+  useEffect(() => {
+    getUsers().then(setUsers).catch(console.error);
+  }, []);
+  
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Welcome to EventLink</Text>
@@ -24,6 +32,22 @@ const HomePage: React.FC = () => {
         <Text style={styles.featureDescription}>
           Know what events your friends plan to attend and join them for a great time.
         </Text>
+      </View>
+
+      
+      <View style={styles.featureCard}>
+        <Text style={styles.featureTitle}>User List (from backend)</Text>
+        {users.length === 0 ? (
+          <Text style={styles.featureDescription}>Loading users...</Text>
+        ) : (
+          <View>
+            {users.map(u => (
+              <Text key={u.userId} style={styles.featureDescription}>
+                {u.userName} ({u.userEmail})
+              </Text>
+            ))}
+          </View>
+        )}
       </View>
     </ScrollView>
   );
