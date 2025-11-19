@@ -8,8 +8,9 @@ const discovery = {
   tokenEndpoint: "https://github.com/login/oauth/access_token",
 };
 
-const CLIENT_ID = "Ov23liHWadJK0RkGR02x";
 
+const CLIENT_ID = process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID;
+console.log("GitHub Client ID:", CLIENT_ID);
 export default function GitHubTestLogin() {
   // Generate the redirect URI with your Expo scheme
   const redirectUri = AuthSession.makeRedirectUri({
@@ -17,6 +18,7 @@ export default function GitHubTestLogin() {
   });
 
   console.log("Redirect URI (copy this to GitHub):", redirectUri);
+  console.log("GitHub Client ID:", CLIENT_ID);
 
   // Create the auth request
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
@@ -32,6 +34,7 @@ export default function GitHubTestLogin() {
   useEffect(() => {
     if (response?.type === "success") {
       const code = response.params.code;
+      console.log("GitHub response:", response);
       console.log("GitHub Code:", code);
       alert("GitHub Login Success!\n\nCode:\n" + code);
     }
