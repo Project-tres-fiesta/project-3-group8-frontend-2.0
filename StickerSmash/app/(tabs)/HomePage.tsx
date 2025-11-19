@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { getUsers } from '../apiClient';
+import { getUsers } from '../api/apiClient';  // Updated import path here
 
 const HomePage: React.FC = () => {
   
