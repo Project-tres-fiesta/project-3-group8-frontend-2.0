@@ -9,7 +9,7 @@ import {
 
 export default function Auth() {
     GoogleSignin.configure({
-       webClientId: '967418967875-344no5lg4i3pbnhkrntic8i4tqhhbt0v.apps.googleusercontent.com', // From Google Cloud Console
+       webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     });
 
     return (
