@@ -49,5 +49,6 @@
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "proxy": "http://10.0.2.2:8080"
 }
