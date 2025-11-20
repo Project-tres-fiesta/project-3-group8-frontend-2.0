@@ -1,7 +1,9 @@
 // import React, { useState } from 'react';
 // import { View, Text, StyleSheet, Button, Alert, TextInput, ScrollView } from 'react-native';
 // import { useNavigation } from '@react-navigation/native';
-
+export default function CheckoutPage() {
+  return null;
+}
 // interface Event {
 //   title: string;
 //   date: string;
