@@ -1,3 +1,24 @@
+import { StyleSheet, View } from 'react-native';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+
+export default function HomeScreen() {
+  return (
+    <ThemedView style={styles.container}>
+      <ThemedText type="title">Welcome</ThemedText>
+      <ThemedText>This is your home screen.</ThemedText>
+    </ThemedView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+});
 // import { Image } from 'expo-image';
 // import { Platform, StyleSheet } from 'react-native';
 
