@@ -1,14 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { getUsers } from '../api/apiClient';  // Updated import path here
+import { useLocalSearchParams } from "expo-router";
+
 
 const HomePage: React.FC = () => {
   
   const [users, setUsers] = useState<any[]>([]);
   useEffect(() => {
-    getUsers().then(setUsers).catch(console.error);
+    //getUsers().then(setUsers).catch(console.error);
   }, []);
   
+  const { code, state } = useLocalSearchParams();
+
+  useEffect(() => {
+    if (code) {
+      console.log("GitHub Code:", code);
+      // send to backend
+    }
+  }, [code]);
+
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
