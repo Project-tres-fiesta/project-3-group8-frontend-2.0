@@ -1,7 +1,8 @@
 import React from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View, Image} from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useEffect, useState } from 'react';
 
 const DARK_GREEN = '#254117';
 
@@ -19,13 +20,42 @@ const sampleFriends = [
 ];
 
 export default function ProfilePage() {
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    const getProfile = async () => {
+      const token = localStorage.getItem("jwt");
+      console.log("Token sent to backend:", token);
+
+      try {
+        const res = await fetch("http://localhost:8080/api/users/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+        const data = await res.json();
+        console.log("User profile:", data);
+        setProfile(data);
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      }
+    };
+
+    getProfile();
+  }, []);
+
+
+
   return (
     <ThemedView style={styles.container}>
       <View style={styles.profileImagePlaceholder}>
-        <ThemedText style={styles.initials}>US</ThemedText>
+        <Image
+        source={{ uri: profile?.profilePicture }}
+        style={{ width: 120, height: 120, borderRadius: 60 }}
+      />  
       </View>
       <ThemedText type="title" style={styles.username}>
-        User
+        {profile?.userName || 'U'}
       </ThemedText>
 
       <ThemedText type="subtitle" style={styles.sectionTitle}>
