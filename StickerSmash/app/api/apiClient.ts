@@ -1,5 +1,6 @@
 // app/apiClient.ts
 import axios from "axios";
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 /**
@@ -15,16 +16,38 @@ const baseURL =
 const apiClient = axios.create({
   baseURL,
   headers: { "Content-Type": "application/json" },
-  withCredentials: true, // 👈 important for session cookies from OAuth
+  withCredentials: true,
 });
 
-// If you later add JWT support (not required yet)
+// --- get token from the right storage depending on platform ---
+
+async function getToken(): Promise<string | null> {
+  // Web: use localStorage (where your login code stores it)
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      return window.localStorage.getItem("jwt");
+    }
+    return null;
+  }
+
+  // Native (Android/iOS): SecureStore
+  try {
+    return await SecureStore.getItemAsync("jwt");
+  } catch (e) {
+    console.warn("SecureStore error", e);
+    return null;
+  }
+}
+
+// Attach Authorization header *if* we have a token
 apiClient.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync("jwt");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const token = await getToken();
+  if (token) {
+    config.headers = config.headers ?? {};
+    (config.headers as any).Authorization = `Bearer ${token}`;
+  }
   return config;
 });
-
 
 export async function getUsers() {
   const res = await apiClient.get("/api/users");
@@ -32,3 +55,4 @@ export async function getUsers() {
 }
 
 export default apiClient;
+
