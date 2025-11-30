@@ -3,8 +3,8 @@ import { Button, Platform } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as AuthSession from "expo-auth-session";
 import * as SecureStore from "expo-secure-store";
+import { useRouter } from 'expo-router';
 
-// Required for web
 WebBrowser.maybeCompleteAuthSession();
 
 const discovery = {
@@ -13,6 +13,8 @@ const discovery = {
 };
 
 export default function GoogleLoginWeb() {
+  const router = useRouter();
+
   const redirectUri = AuthSession.makeRedirectUri({
     useProxy: Platform.OS !== "web",
     pathname: "LoginPage",
@@ -31,14 +33,17 @@ export default function GoogleLoginWeb() {
     discovery
   );
 
-
-
   const sendCodeToBackend = async (code: string, codeVerifier?: string) => {
     try {
       console.log("Sending code to backend:", code);
       console.log("Using codeVerifier:", codeVerifier);
 
-      const res = await fetch("http://localhost:8080/oauth2/callback", {
+      const API_BASE =
+        process.env.NODE_ENV === 'development'
+          ? 'http://localhost:8080'
+          : 'https://group8-backend-0037104cd0e1.herokuapp.com';
+
+      const res = await fetch(`${API_BASE}/oauth2/callback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, codeVerifier }),
@@ -46,36 +51,19 @@ export default function GoogleLoginWeb() {
 
       if (!res.ok) throw new Error(`Backend error: ${res.status}`);
       const data = await res.json();
-      //await SecureStore.setItemAsync("jwt", data.token)
-      await localStorage.setItem("jwt", data.token);
+      
+      if (Platform.OS === 'web') {
+        localStorage.setItem("jwt", data.token);
+      } else {
+        await SecureStore.setItemAsync("jwt", data.token);
+      }
+      
       console.log("Backend response:", data);
-
       return data;
     } catch (err) {
       console.error("Error sending code to backend:", err);
     }
   };
-
-
-const testBackend = async () => {
-  const token = localStorage.getItem("jwt"); // localStorage.getItem is synchronous
-  console.log("Token sent to backend:", token);
-
-  try {
-    const res = await fetch("http://localhost:8080/api/users/profile", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-    const data = await res.json();
-    console.log("User profile:", data);
-    return data;
-  } catch (err) {
-    console.error("Error testing backend:", err);
-  }
-};
 
   React.useEffect(() => {
     if (response?.type === "success" && request) {
@@ -85,11 +73,9 @@ const testBackend = async () => {
           const code = response.params.code;
           console.log("Authorization code:", code);
 
-          // Send code + PKCE verifier to backend
           await sendCodeToBackend(code, request.codeVerifier);
-
-          // Optional: test backend
-          await testBackend();
+          
+          router.replace('/(tabs)');
         } catch (err) {
           console.error("Error handling OAuth response:", err);
         }
