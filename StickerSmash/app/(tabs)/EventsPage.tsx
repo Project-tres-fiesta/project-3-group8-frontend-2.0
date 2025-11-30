@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ListRenderItem, ActivityIndicator } from 'react-native';
+import { View, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { ThemedView } from '@/components/themed-view';
+import { ThemedText } from '@/components/themed-text';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 interface Event {
   id: string;
@@ -10,6 +15,10 @@ interface Event {
       localTime?: string;
     };
   };
+  images?: Array<{
+    url: string;
+    ratio?: string;
+  }>;
   _embedded?: {
     venues?: Array<{
       name: string;
@@ -20,15 +29,12 @@ interface Event {
   };
 }
 
-interface EventsPageProps {
-  navigation: {
-    navigate: (screen: string, params: { event: Event }) => void;
-  };
-}
+interface EventsPageProps {}
 
 const API_KEY = 'BZWNLgbulJGpWGUNixb7Vh991xWPOzgs';
 
-const EventsPage: React.FC<EventsPageProps> = ({ navigation }) => {
+const EventsPage: React.FC<EventsPageProps> = () => {
+  const insets = useSafeAreaInsets();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,60 +67,229 @@ const EventsPage: React.FC<EventsPageProps> = ({ navigation }) => {
   }, []);
 
   const handleEventPress = (event: Event) => {
-    if (navigation && typeof navigation.navigate === 'function') {
-      navigation.navigate('Checkout', { event });
-    }
+    router.push({
+      pathname: '/event-details',
+      params: { event: JSON.stringify(event) },
+    });
   };
 
-  const renderItem: ListRenderItem<Event> = ({ item }) => (
-    <TouchableOpacity onPress={() => handleEventPress(item)} style={styles.eventCard}>
-      <Text style={styles.eventTitle}>{item.name}</Text>
-      <Text style={styles.eventDate}>
-        {item.dates.start.localDate} {item.dates.start.localTime || ''}
-      </Text>
-      {item._embedded?.venues && (
-        <Text style={styles.eventVenue}>
-          {item._embedded.venues[0].name}, {item._embedded.venues[0].city?.name || ''}{' '}
-          {item._embedded.venues[0].state?.name || ''} {item._embedded.venues[0].country?.name || ''}
-        </Text>
-      )}
+  const renderItem = ({ item }: { item: Event }) => (
+    <TouchableOpacity
+      style={styles.eventCard}
+      activeOpacity={0.8}
+      onPress={() => handleEventPress(item)}
+    >
+      <ThemedView isCard style={styles.cardImageContainer}>
+        <ThemedView style={styles.imageOverlay} />
+        {item.images && item.images[0] ? (
+          <ThemedView style={[styles.eventImage]} />
+        ) : (
+          <ThemedView style={styles.placeholderImage} />
+        )}
+        <ThemedText type="headline" style={styles.cardTitle} numberOfLines={2}>
+          {item.name}
+        </ThemedText>
+        <ThemedText type="caption" style={styles.cardSubtitle} numberOfLines={1}>
+          {item._embedded?.venues?.[0]?.name || 'Venue TBD'}
+        </ThemedText>
+        <ThemedText type="caption" style={styles.cardDate}>
+          {item.dates.start.localDate}
+          {item.dates.start.localTime && ` • ${item.dates.start.localTime.substring(0, 5)}`}
+        </ThemedText>
+      </ThemedView>
+      <View style={styles.cardContent}>
+        <ThemedText type="bodyLarge" style={styles.viewSeats}>
+          VIEW SEATS
+        </ThemedText>
+      </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Upcoming Events</Text>
-      {loading && <ActivityIndicator size="large" color="#1e90ff" style={{ marginTop: 18 }} />}
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <ThemedText type="title" style={styles.headerTitle}>
+          Upcoming Events
+        </ThemedText>
+        <TouchableOpacity style={styles.filterButton}>
+          <Ionicons name="options-outline" size={24} color="#1E90FF" />
+        </TouchableOpacity>
+      </View>
+
+      {loading && (
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1E90FF" />
+          <ThemedText type="body" style={styles.loadingText}>
+            Loading events...
+          </ThemedText>
+        </ThemedView>
+      )}
+
       {error && (
-        <Text style={{ color: 'red', paddingVertical: 10 }}>
-          Error: {error}
-        </Text>
+        <ThemedView style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#FF3B30" />
+          <ThemedText type="headline" style={styles.errorTitle}>
+            Oops!
+          </ThemedText>
+          <ThemedText type="body" style={styles.errorText}>
+            {error}
+          </ThemedText>
+        </ThemedView>
       )}
-      {!loading && !error && events.length === 0 && (
-        <Text style={styles.noEventsText}>No upcoming events found.</Text>
-      )}
+
       <FlatList
         data={events}
-        keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <ThemedView style={styles.emptyState}>
+            <Ionicons name="ticket-outline" size={64} color="#1E90FF" />
+            <ThemedText type="headline" style={styles.emptyTitle}>
+              No events found
+            </ThemedText>
+            <ThemedText type="body" style={styles.emptySubtitle}>
+              Check back soon for upcoming events
+            </ThemedText>
+          </ThemedView>
+        }
       />
-    </View>
+    </ThemedView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 15 },
-  eventCard: {
-    padding: 15,
-    backgroundColor: '#f2f2f2',
-    marginBottom: 10,
-    borderRadius: 6,
+  container: {
+    flex: 1,
   },
-  eventTitle: { fontSize: 18, fontWeight: '600' },
-  eventDate: { color: '#666', fontSize: 14 },
-  eventVenue: { fontStyle: 'italic', fontSize: 14, marginTop: 4, color: '#444' },
-  noEventsText: { fontSize: 16, color: '#888' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  headerTitle: {
+    fontWeight: '900',
+  },
+  filterButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  listContent: {
+    padding: 24,
+    paddingBottom: 100,
+    flexGrow: 1,
+  },
+  eventCard: {
+    marginBottom: 20,
+  },
+  cardImageContainer: {
+    height: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  eventImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#1E90FF',
+  },
+  placeholderImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#1E90FF',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  cardTitle: {
+    position: 'absolute',
+    bottom: 60,
+    left: 20,
+    right: 20,
+    color: 'white',
+    fontWeight: '900',
+  },
+  cardSubtitle: {
+    position: 'absolute',
+    bottom: 36,
+    left: 20,
+    right: 20,
+    color: 'white',
+  },
+  cardDate: {
+    position: 'absolute',
+    bottom: 16,
+    left: 20,
+    right: 20,
+    color: 'white',
+  },
+  cardContent: {
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  viewSeats: {
+    color: '#1E90FF',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    opacity: 0.8,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    padding: 32,
+  },
+  errorTitle: {
+    textAlign: 'center',
+  },
+  errorText: {
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    padding: 48,
+  },
+  emptyTitle: {
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    textAlign: 'center',
+    opacity: 0.7,
+  },
 });
 
 export default EventsPage;

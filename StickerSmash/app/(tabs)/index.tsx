@@ -1,40 +1,174 @@
-import { Redirect, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+// import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+// import React from 'react';
+// import { ThemedView } from '@/components/themed-view';
+// import { ThemedText } from '@/components/themed-text';
+// import { Ionicons } from '@expo/vector-icons';
+// import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function Index() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasToken, setHasToken] = useState(false);
+// export default function HomeScreen() {
+//   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+//   const events = [
+//     {
+//       id: '1',
+//       title: 'Coldplay World Tour',
+//       subtitle: 'Madison Square Garden',
+//       date: 'Dec 15, 2025',
+//       image: 'https://via.placeholder.com/400x200/E31C5D/FFFFFF?text=Coldplay',
+//       price: '$125',
+//     },
+//     {
+//       id: '2',
+//       title: 'Taylor Swift Eras Tour',
+//       subtitle: 'MetLife Stadium',
+//       date: 'Jan 10, 2026',
+//       image: 'https://via.placeholder.com/400x200/E31C5D/FFFFFF?text=Taylor+Swift',
+//       price: '$299',
+//     },
+//     {
+//       id: '3',
+//       title: 'NBA: Knicks vs Lakers',
+//       subtitle: 'Madison Square Garden',
+//       date: 'Tomorrow • 7:30 PM',
+//       image: 'https://via.placeholder.com/400x200/E31C5D/FFFFFF?text=NBA',
+//       price: '$89',
+//     },
+//   ];
 
-  const checkAuthStatus = async () => {
-    try {
-      let token;
-      if (Platform.OS === 'web') {
-        token = localStorage.getItem('jwt');
-      } else {
-        token = await SecureStore.getItemAsync('jwt');
-      }
+//   const renderEventCard = ({ item }: { item: any }) => (
+//     <TouchableOpacity style={styles.eventCard} activeOpacity={0.8}>
+//       <ThemedView isCard style={styles.cardImageContainer}>
+//         <ThemedView style={styles.imageOverlay} />
+//         <ThemedText type="headline" style={styles.cardTitle}>
+//           {item.title}
+//         </ThemedText>
+//         <ThemedText type="caption" style={styles.cardSubtitle}>
+//           {item.subtitle}
+//         </ThemedText>
+//         <ThemedText type="caption" style={styles.cardDate}>
+//           {item.date}
+//         </ThemedText>
+//       </ThemedView>
+//       <View style={styles.cardContent}>
+//         <ThemedText type="bodyLarge" style={styles.price}>
+//           {item.price}
+//         </ThemedText>
+//         <ThemedText type="label" style={styles.viewSeats}>
+//           VIEW SEATS
+//         </ThemedText>
+//       </View>
+//     </TouchableOpacity>
+//   );
+
+//   return (
+//     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
+//       <View style={styles.header}>
+//         <ThemedText type="title" style={styles.headerTitle}>
+//           Events Near You
+//         </ThemedText>
+//         <TouchableOpacity style={styles.filterButton}>
+//           <Ionicons name="options-outline" size={24} color="#E31C5D" />
+//         </TouchableOpacity>
+//       </View>
       
-      setHasToken(!!token);
-    } catch (error) {
-      console.error('Auth check failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+//       <FlatList
+//         data={events}
+//         renderItem={renderEventCard}
+//         keyExtractor={(item) => item.id}
+//         showsVerticalScrollIndicator={false}
+//         contentContainerStyle={styles.listContent}
+//       />
+//     </ThemedView>
+//   );
+// }
 
-  if (isLoading) {
-    return null;
-  }
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//   },
+//   header: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     paddingHorizontal: 24,
+//     paddingVertical: 20,
+//   },
+//   headerTitle: {
+//     fontWeight: '900',
+//   },
+//   filterButton: {
+//     width: 44,
+//     height: 44,
+//     borderRadius: 22,
+//     backgroundColor: '#F8F9FA',
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//   },
+//   listContent: {
+//     padding: 24,
+//     paddingBottom: 100,
+//   },
+//   eventCard: {
+//     marginBottom: 20,
+//   },
+//   cardImageContainer: {
+//     height: 200,
+//     borderRadius: 16,
+//     overflow: 'hidden',
+//     position: 'relative',
+//   },
+//   imageOverlay: {
+//     position: 'absolute',
+//     top: 0,
+//     left: 0,
+//     right: 0,
+//     bottom: 0,
+//     backgroundColor: 'rgba(0,0,0,0.4)',
+//   },
+//   cardTitle: {
+//     position: 'absolute',
+//     bottom: 60,
+//     left: 20,
+//     right: 20,
+//     color: 'white',
+//     fontWeight: '900',
+//   },
+//   cardSubtitle: {
+//     position: 'absolute',
+//     bottom: 36,
+//     left: 20,
+//     right: 20,
+//     color: 'white',
+//   },
+//   cardDate: {
+//     position: 'absolute',
+//     bottom: 16,
+//     left: 20,
+//     right: 20,
+//     color: 'white',
+//   },
+//   cardContent: {
+//     padding: 20,
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//   },
+//   price: {
+//     fontSize: 24,
+//     fontWeight: '900',
+//     color: '#E31C5D',
+//   },
+//   viewSeats: {
+//     color: '#E31C5D',
+//     fontWeight: '700',
+//     textTransform: 'uppercase',
+//     letterSpacing: 1,
+//   },
+// });
 
-  return hasToken ? (
-    <Redirect href="/(tabs)" />
-  ) : (
-    <Redirect href="/login" />
-  );
-}
+
+// import { Redirect } from 'expo-router';
+
+// export default function RootIndex() {
+//   return <Redirect href="/login" />;
+// }
