@@ -1,113 +1,79 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, NativeSyntheticEvent, TextInputChangeEventData } from 'react-native';
-import Auth from '@/components/Auth';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { ThemedView } from '@/components/themed-view';
 import GitHubTestLogin from '@/components/GitHubLogin';
 import GoogleLoginWeb from '@/components/GoogleLoginWeb';
-import { Platform } from "react-native";
+import { ThemedText } from '@/components/themed-text';
 
-const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-
-  const handleEmailChange = (e: NativeSyntheticEvent<TextInputChangeEventData>) => {
-    setEmail(e.nativeEvent.text);
-  };
-
-  const handlePasswordChange = (e: NativeSyntheticEvent<TextInputChangeEventData>) => {
-    setPassword(e.nativeEvent.text);
-  };
-
+export default function LoginScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Sign in to get your tickets</Text>
-      <Text style={styles.subheading}>
-        Buy tickets to exciting events and see which games your friends are attending.
-      </Text>
+    <ThemedView style={styles.container}>
+      <View style={styles.content}>
+        {/* EventLink hero branding */}
+        <View style={styles.logoContainer}>
+          <ThemedText type="titleLarge" style={styles.logoText}>
+            EventLink
+          </ThemedText>
+          <ThemedText
+            type="caption"
+            lightColor="#1E90FF"
+            darkColor="#4DA3FF"
+          >
+            Discover amazing events near you
+          </ThemedText>
+        </View>
 
-      <View style={styles.form}>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          textContentType="emailAddress"
-          value={email}
-          onChange={handleEmailChange}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry
-          textContentType="password"
-          value={password}
-          onChange={handlePasswordChange}
-        />
-        <TouchableOpacity style={styles.button}>
-          <Image
-            source={{ uri: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg' }}
-            style={styles.googleIcon}
-            accessibilityLabel="Google Logo"
-          />
-          <Text style={styles.buttonText}>Continue with Google</Text>
-        </TouchableOpacity>
-        {
-          Platform.OS === "web" ? <GoogleLoginWeb /> : <Auth />
-        }
-        
-        <GitHubTestLogin />
+        <ThemedText type="headline" style={styles.subtitle}>
+          Sign in to discover events
+        </ThemedText>
+
+        <View style={styles.buttonContainer}>
+          <GoogleLoginWeb />
+          <GitHubTestLogin />
+        </View>
+
+        <ThemedView style={styles.footer}>
+          <ThemedText type="caption">
+            By signing in, you agree to our Terms of Service
+          </ThemedText>
+        </ThemedView>
       </View>
-    </View>
+    </ThemedView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  subheading: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  form: {
-    marginTop: 10,
-  },
-  input: {
-    height: 48,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-    fontSize: 16,
-  },
-  button: {
-    flexDirection: 'row',
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#4285F4',
-    paddingVertical: 12,
-    borderRadius: 6,
+    padding: 24,
+    paddingTop: 80,
+    gap: 32,
   },
-  googleIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 10,
+  logoContainer: {
+    alignItems: 'center',
+    gap: 8,
   },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
+  logoText: {
+    fontSize: 48,
+    fontWeight: '900',
+    backgroundColor: 'transparent',
+  },
+  subtitle: {
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  buttonContainer: {
+    gap: 16,
+    width: '100%',
+    maxWidth: 320,
+  },
+  footer: {
+    padding: 16,
+    alignItems: 'center',
   },
 });
-
-export default LoginPage;
