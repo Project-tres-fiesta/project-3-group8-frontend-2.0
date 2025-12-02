@@ -9,8 +9,7 @@
    "web": "expo start --web",
    "lint": "expo lint",
    "test": "jest",
-
-   "build:web": "expo export:web",
+   "build:web": "expo export --platform web --output-dir web-build",
    "heroku-postbuild": "npm run build:web",
    "serve-web": "node server.js"
   },
