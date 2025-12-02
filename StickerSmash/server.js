@@ -5,14 +5,16 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const buildPath = path.join(__dirname, "dist");
+// Expo export:web outputs to "web-build"
+const buildPath = path.join(__dirname, "web-build");
 
+// Serve static assets
 app.use(express.static(buildPath));
 
-app.get("/*", (req, res) => {
-  res.sendFile(path.join(__dirname, "web-build", "index.html"));
+app.use((req, res) => {
+  res.sendFile(path.join(buildPath, "index.html"));
 });
-// Start server
+
 app.listen(PORT, () => {
   console.log(`🚀 Frontend running on port ${PORT}`);
 });
