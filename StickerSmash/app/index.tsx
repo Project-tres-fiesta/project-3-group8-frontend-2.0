@@ -2,7 +2,7 @@
 import { Redirect } from "expo-router";
 
 export default function Index() {
-  return <Redirect href="/LoginPage" />;
+  return <Redirect href="/(tabs)/LoginPage" />;
 }
 // import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 // import React from 'react';
