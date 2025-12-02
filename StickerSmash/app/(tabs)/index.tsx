@@ -1,3 +1,9 @@
+// app/index.tsx
+import { Redirect } from "expo-router";
+
+export default function Index() {
+  return <Redirect href="/LoginPage" />;
+}
 // import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 // import React from 'react';
 // import { ThemedView } from '@/components/themed-view';
