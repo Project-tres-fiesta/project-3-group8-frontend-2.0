@@ -9,10 +9,9 @@ const buildPath = path.join(__dirname, "dist");
 
 app.use(express.static(buildPath));
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(buildPath, "index.html"));
+app.get("/*", (req, res) => {
+  res.sendFile(path.join(__dirname, "web-build", "index.html"));
 });
-
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Frontend running on port ${PORT}`);
