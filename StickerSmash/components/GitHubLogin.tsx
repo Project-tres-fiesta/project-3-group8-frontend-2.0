@@ -1,48 +1,38 @@
-import React from "react";
-import { Button, Platform } from "react-native";
-import * as WebBrowser from "expo-web-browser";
+import React, { useEffect } from "react";
+import { Button, Platform, View } from "react-native";
 import * as AuthSession from "expo-auth-session";
-import { useRouter } from 'expo-router';
+import * as WebBrowser from "expo-web-browser";
 
+// Required for web
 WebBrowser.maybeCompleteAuthSession();
 
+
+// GitHub OAuth endpoints
 const discovery = {
   authorizationEndpoint: "https://github.com/login/oauth/authorize",
   tokenEndpoint: "https://github.com/login/oauth/access_token",
 };
+let CLIENT_ID:string | undefined;
+// Use different client IDs for web and mobile
+if (Platform.OS === 'web') {
+  console.log("Running on web");
+  CLIENT_ID = process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID_WEB;
+} else {
+  console.log("Running on mobile");
+  CLIENT_ID = process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID_MOBILE;
+}
 
+// const CLIENT_ID_MOBILE = process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID_MOBILE;
+// const CLIENT_ID_WEB = process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID_MOBILE;
+
+console.log("GitHub Client ID:", CLIENT_ID);
 export default function GitHubTestLogin() {
-  const router = useRouter();
-
-  const redirectUri = AuthSession.makeRedirectUri({
-    useProxy: Platform.OS !== "web",
-    pathname: "LoginPage",
-  });
-
-  console.log("Redirect URI:", redirectUri);
-
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId: process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID!,
-      redirectUri,
-      scopes: ["user"],
-      responseType: AuthSession.ResponseType.Code,
-      codeChallengeMethod: AuthSession.CodeChallengeMethod.S256,
-    },
-    discovery
-  );
-
   const sendCodeToBackend = async (code: string, codeVerifier?: string) => {
     try {
       console.log("Sending code to backend:", code);
       console.log("Using codeVerifier:", codeVerifier);
 
-      const API_BASE =
-        process.env.NODE_ENV === 'development'
-          ? 'http://localhost:8080'
-          : 'https://group8-backend-0037104cd0e1.herokuapp.com';
-
-      const res = await fetch(`${API_BASE}/oauth2/callback`, {
+      const res = await fetch("http://localhost:8080/oauth2/callbackGithub", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, codeVerifier }),
@@ -50,43 +40,81 @@ export default function GitHubTestLogin() {
 
       if (!res.ok) throw new Error(`Backend error: ${res.status}`);
       const data = await res.json();
-      
-      if (Platform.OS === 'web') {
-        localStorage.setItem("jwt", data.token);
-      } else {
-        await SecureStore.setItemAsync("jwt", data.token);
-      }
-      
+      //await SecureStore.setItemAsync("jwt", data.token)
+      await localStorage.setItem("jwt", data.token);
       console.log("Backend response:", data);
+
       return data;
     } catch (err) {
       console.error("Error sending code to backend:", err);
     }
   };
 
-  React.useEffect(() => {
-    if (response?.type === "success" && request) {
-      (async () => {
-        try {
-          console.log("OAuth response:", response);
-          const code = response.params.code;
-          console.log("Authorization code:", code);
+  // Generate the redirect URI with your Expo scheme
+  let redirectUri:string | undefined;
+  if (Platform.OS === "web") {
+    redirectUri = AuthSession.makeRedirectUri({
+      path:"HomePage", // The path to redirect to after login on web
+    });
+  } else {
+    redirectUri = AuthSession.makeRedirectUri({
+      scheme: "eventlink", // For android/iOS standalone apps, set your own scheme
+    });
+  }
+  // const redirectUri = AuthSession.makeRedirectUri({
+  //   scheme: "eventlink", // For android/iOS standalone apps, set your own scheme
+  //   //path:"HomePage", // The path to redirect to after login on web
+  // });
 
-          await sendCodeToBackend(code, request.codeVerifier);
-          
-          router.replace('/(tabs)');
-        } catch (err) {
-          console.error("Error handling OAuth response:", err);
-        }
-      })();
-    }
-  }, [response, request]);
+  console.log("Redirect URI (copy this to GitHub):", redirectUri);
+  console.log("GitHub Client ID:", CLIENT_ID);
+
+  // Create the auth request
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: CLIENT_ID,
+      scopes: ["read:user", "user:email"],
+      redirectUri,
+      codeChallengeMethod: AuthSession.CodeChallengeMethod.S256,
+    },
+    discovery
+  );
+
+  // Handle response
+  // useEffect(() => {
+  //   if (response?.type === "success") {
+  //     const code = response.params.code;
+  //     console.log("GitHub response:", response);
+  //     console.log("GitHub Code:", code);
+  //     alert("GitHub Login Success!\n\nCode:\n" + code);
+  //   }
+  // }, [response]);
+
+  React.useEffect(() => {
+      if (response?.type === "success" && request) {
+        (async () => {
+          try {
+            console.log("OAuth response:", response);
+            const code = response.params.code;
+            console.log("Authorization code:", code);
+  
+            // Send code + PKCE verifier to backend
+            await sendCodeToBackend(code, request.codeVerifier);
+  
+            // Optional: test backend
+            //await testBackend();
+          } catch (err) {
+            console.error("Error handling OAuth response:", err);
+          }
+        })();
+      }
+    }, [response, request]);
 
   return (
     <Button
       title="Sign in with GitHub"
-      disabled={!request}
       onPress={() => promptAsync()}
+      disabled={!request}
     />
   );
 }
