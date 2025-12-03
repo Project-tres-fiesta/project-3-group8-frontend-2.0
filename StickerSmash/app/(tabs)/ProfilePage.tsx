@@ -4,9 +4,34 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useEffect, useState } from 'react';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    const getProfile = async () => {
+      const token = localStorage.getItem("jwt");
+      console.log("Token sent to backend:", token);
+
+      try {
+        const res = await fetch("http://localhost:8080/api/users/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+        const data = await res.json();
+        console.log("User profile:", data);
+        setProfile(data);
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      }
+    };
+
+    getProfile();
+  }, []);
 
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
@@ -17,10 +42,10 @@ export default function ProfileScreen() {
             <Ionicons name="person" size={80} color="#1E90FF" />
           </ThemedView>
           <ThemedText type="title" style={styles.profileName}>
-            John Doe
+            {profile?.userName || 'U'}
           </ThemedText>
           <ThemedText type="body" style={styles.profileHandle}>
-            @johndoe
+            {profile?.userEmail || 'U'}
           </ThemedText>
         </ThemedView>
 
