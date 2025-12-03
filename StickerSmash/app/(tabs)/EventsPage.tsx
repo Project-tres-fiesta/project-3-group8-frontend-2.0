@@ -9,8 +9,8 @@ import {
   Platform,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import { ThemedView } from "@/components/themed-view";
-import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from '../../components/themed-view';
+import { ThemedText } from '../../components/themed-text';
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
