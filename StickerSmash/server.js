@@ -5,8 +5,8 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 👇 Match the Expo export output: StickerSmash/dist
-const buildPath = path.join(__dirname, "StickerSmash", "dist");
+// Expo export:web outputs to "web-build"
+const buildPath = path.join(__dirname, "web-build");
 
 // Serve static assets
 app.use(express.static(buildPath));
