@@ -1,28 +1,86 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+// app/(tabs)/profile.tsx (or wherever your ProfileScreen lives)
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Platform,
+  Alert,
+} from "react-native";
+import * as SecureStore from "expo-secure-store";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+
+import { ThemedView } from "@/components/themed-view";
+import { ThemedText } from "@/components/themed-text";
+import { Ionicons } from "@expo/vector-icons";
+
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:8080"
+    : "https://group8-backend-0037104cd0e1.herokuapp.com";
+
+type Profile = {
+  userId: number;
+  userName: string | null;
+  userEmail: string;
+  profilePicture?: string | null;
+};
+
+async function getJwt(): Promise<string | null> {
+  try {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined") {
+        return window.localStorage.getItem("jwt");
+      }
+      return null;
+    } else {
+      return await SecureStore.getItemAsync("jwt");
+    }
+  } catch (e) {
+    console.warn("Error reading JWT", e);
+    return null;
+  }
+}
+
+async function clearJwt() {
+  try {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem("jwt");
+      }
+    } else {
+      await SecureStore.deleteItemAsync("jwt");
+    }
+  } catch (e) {
+    console.warn("Error clearing JWT", e);
+  }
+}
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     const getProfile = async () => {
-      const token = localStorage.getItem("jwt");
+      const token = await getJwt();
       console.log("Token sent to backend:", token);
 
+      if (!token) {
+        console.warn("No JWT token found – user probably not logged in.");
+        return;
+      }
+
       try {
-        const res = await fetch("http://localhost:8080/api/users/profile", {
+        const res = await fetch(`${API_BASE}/api/users/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-        const data = await res.json();
+        const data: Profile = await res.json();
         console.log("User profile:", data);
         setProfile(data);
       } catch (err) {
@@ -33,6 +91,12 @@ export default function ProfileScreen() {
     getProfile();
   }, []);
 
+  const handleSignOut = async () => {
+    await clearJwt();
+    Alert.alert("Signed out", "You have been signed out.");
+    router.replace("/"); // goes back to index -> redirect to login
+  };
+
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView style={styles.scrollContent}>
@@ -42,14 +106,14 @@ export default function ProfileScreen() {
             <Ionicons name="person" size={80} color="#1E90FF" />
           </ThemedView>
           <ThemedText type="title" style={styles.profileName}>
-            {profile?.userName || 'U'}
+            {profile?.userName || "User"}
           </ThemedText>
           <ThemedText type="body" style={styles.profileHandle}>
-            {profile?.userEmail || 'U'}
+            {profile?.userEmail || "Not logged in"}
           </ThemedText>
         </ThemedView>
 
-        {/* Stats */}
+        {/* Stats (dummy for now) */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <ThemedText type="titleLarge" style={styles.statNumber}>
@@ -75,34 +139,47 @@ export default function ProfileScreen() {
         <ThemedView isCard style={styles.menuSection}>
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="ticket-outline" size={24} color="#1E90FF" />
-            <ThemedText type="bodyLarge" style={styles.menuText}>My Tickets</ThemedText>
+            <ThemedText type="bodyLarge" style={styles.menuText}>
+              My Tickets
+            </ThemedText>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="card-outline" size={24} color="#1E90FF" />
-            <ThemedText type="bodyLarge" style={styles.menuText}>Payment Methods</ThemedText>
+            <ThemedText type="bodyLarge" style={styles.menuText}>
+              Payment Methods
+            </ThemedText>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="notifications-outline" size={24} color="#1E90FF" />
-            <ThemedText type="bodyLarge" style={styles.menuText}>Notifications</ThemedText>
+            <ThemedText type="bodyLarge" style={styles.menuText}>
+              Notifications
+            </ThemedText>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
         </ThemedView>
 
         {/* Account Section */}
-        <ThemedView isCard style={[styles.menuSection, styles.accountSection]}>
+        <ThemedView
+          isCard
+          style={[styles.menuSection, styles.accountSection]}
+        >
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="settings-outline" size={24} color="#1E90FF" />
-            <ThemedText type="bodyLarge" style={styles.menuText}>Settings</ThemedText>
+            <ThemedText type="bodyLarge" style={styles.menuText}>
+              Settings
+            </ThemedText>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.logoutButton}>
+
+          <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
             <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
-            <ThemedText type="bodyLarge" style={styles.logoutText}>Sign Out</ThemedText>
+            <ThemedText type="bodyLarge" style={styles.logoutText}>
+              Sign Out
+            </ThemedText>
           </TouchableOpacity>
         </ThemedView>
       </ScrollView>
@@ -118,7 +195,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileHeader: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 40,
     paddingTop: 20,
   },
@@ -126,13 +203,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#F8F9FA',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F8F9FA",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   profileName: {
-    fontWeight: '900',
+    fontWeight: "900",
     fontSize: 32,
   },
   profileHandle: {
@@ -140,16 +217,16 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     paddingHorizontal: 24,
     marginBottom: 32,
   },
   statItem: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   statNumber: {
-    color: '#1E90FF',
+    color: "#1E90FF",
   },
   menuSection: {
     marginHorizontal: 24,
@@ -159,27 +236,26 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 20,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: "#F0F0F0",
   },
   menuText: {
     flex: 1,
     marginLeft: 16,
   },
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 20,
     paddingHorizontal: 16,
   },
   logoutText: {
     flex: 1,
     marginLeft: 16,
-    color: '#FF3B30',
+    color: "#FF3B30",
   },
 });
-
