@@ -11,7 +11,11 @@ import {
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-const API_BASE = "https://group8-backend-0037104cd0e1.herokuapp.com";
+// Match the pattern used elsewhere (dev vs prod)
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:8080"
+    : "https://group8-backend-0037104cd0e1.herokuapp.com";
 
 async function getJwt(): Promise<string | null> {
   try {
@@ -29,7 +33,24 @@ async function getJwt(): Promise<string | null> {
   }
 }
 
-type Friendship = any;
+// --- Types -------------------------------------------------
+
+type Friendship = {
+  id: number;
+  user1Id: number;
+  user2Id: number;
+  requestedBy: number;
+  status: string;
+  // we will enrich with this on the frontend:
+  otherUser?: FriendUser;
+};
+
+type FriendUser = {
+  userId: number;
+  userName: string | null;
+  userEmail: string;
+  profilePicture?: string | null;
+};
 
 const FriendRequestsScreen: React.FC = () => {
   const [pending, setPending] = useState<Friendship[]>([]);
@@ -46,6 +67,18 @@ const FriendRequestsScreen: React.FC = () => {
         return;
       }
 
+      // 1️⃣ Get current user profile so we know *my* userId
+      const meRes = await fetch(`${API_BASE}/api/users/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!meRes.ok) {
+        const txt = await meRes.text().catch(() => "");
+        throw new Error(txt || `Error fetching profile: ${meRes.status}`);
+      }
+      const me = await meRes.json();
+      const myId: number = me.userId;
+
+      // 2️⃣ Get pending friendships (FriendshipDto[])
       const res = await fetch(`${API_BASE}/api/friendships/pending`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -54,9 +87,45 @@ const FriendRequestsScreen: React.FC = () => {
         throw new Error(txt || `Error: ${res.status}`);
       }
 
-      const data: Friendship[] = await res.json();
-      console.log("Pending friendships:", data);
-      setPending(data);
+      const raw: Friendship[] = await res.json();
+      console.log("Pending friendships:", raw);
+
+      if (raw.length === 0) {
+        setPending([]);
+        return;
+      }
+
+      // 3️⃣ Enrich each friendship with the "other" user object
+      const enriched: Friendship[] = await Promise.all(
+        raw.map(async (f) => {
+          // figure out which side is the other user
+          const otherId = myId === f.user1Id ? f.user2Id : f.user1Id;
+
+          try {
+            const uRes = await fetch(`${API_BASE}/api/users/${otherId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!uRes.ok) {
+              const txt = await uRes.text().catch(() => "");
+              console.warn(
+                `Failed to fetch user ${otherId}:`,
+                uRes.status,
+                txt
+              );
+              return f;
+            }
+
+            const user: FriendUser = await uRes.json();
+            return { ...f, otherUser: user };
+          } catch (err) {
+            console.warn("Error fetching user for friendship", f.id, err);
+            return f;
+          }
+        })
+      );
+
+      setPending(enriched);
     } catch (e: any) {
       console.warn("Failed to load pending friendships", e?.message ?? e);
       Alert.alert("Error", "Could not load friend requests.");
@@ -69,7 +138,10 @@ const FriendRequestsScreen: React.FC = () => {
     loadPending();
   }, [loadPending]);
 
-  const actOnRequest = async (friendshipId: number, action: "accept" | "reject") => {
+  const actOnRequest = async (
+    friendshipId: number,
+    action: "accept" | "reject"
+  ) => {
     try {
       const token = await getJwt();
       if (!token) {
@@ -112,17 +184,12 @@ const FriendRequestsScreen: React.FC = () => {
   };
 
   const renderItem = ({ item }: { item: Friendship }) => {
-    const otherUser =
-      item.requester ||
-      item.fromUser ||
-      item.sender ||
-      item.user ||
-      item.requesterUser ||
-      null;
+    // after enrichment, this should be set
+    const otherUser = item.otherUser || null;
 
     const displayName =
-      otherUser?.userName || otherUser?.name || "Unknown user";
-    const email = otherUser?.userEmail || otherUser?.email || "";
+      otherUser?.userName || otherUser?.userEmail || "Unknown user";
+    const email = otherUser?.userEmail || "";
 
     return (
       <View style={styles.row}>
