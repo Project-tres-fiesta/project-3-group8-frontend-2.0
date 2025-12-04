@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+
 
 export default function GroupsPage() {
+    const router = useRouter();
     const token = localStorage.getItem("jwt");
 
     const getUserId = async (token: string): Promise<number | null> => {
@@ -104,8 +108,13 @@ const createGroup = async (groupName: string, userId: number) => {
       <View style={{ marginTop: 20 }}>
         {groups.map((group: any) => (
           <View key={group.groupId} style={{ padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 }}>
-            <Text style={{ fontSize: 16 }}>{group.groupName}</Text>
-            <TouchableOpacity 
+<TouchableOpacity
+  key={group.groupId}
+onPress={() => router.push(`/GroupDetailsPage?groupId=${group.groupId}`)}
+  style={{ padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 }}
+>
+  <Text style={{ fontSize: 16 }}>{group.groupName}</Text>
+</TouchableOpacity>            <TouchableOpacity 
               style={{ backgroundColor: '#4A90E2', padding: 8, borderRadius: 6, marginTop: 6, alignItems: 'center' }}
               onPress={() => joinGroup(group.groupId)}
             >
