@@ -149,6 +149,17 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push("../FriendsPage")}
+          >
+            <Ionicons name="people-outline" size={24} color="#1E90FF" />
+            <ThemedText type="bodyLarge" style={styles.menuText}>
+              Friends
+            </ThemedText>
+            <Ionicons name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="ticket-outline" size={24} color="#1E90FF" />
             <ThemedText type="bodyLarge" style={styles.menuText}>
