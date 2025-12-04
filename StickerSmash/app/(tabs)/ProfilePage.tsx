@@ -140,7 +140,7 @@ export default function ProfileScreen() {
           {/* NEW: Friend Requests entry */}
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => router.push("//friendRequest")}
+            onPress={() => router.push("/friendRequests")}
           >
             <Ionicons name="person-add-outline" size={24} color="#1E90FF" />
             <ThemedText type="bodyLarge" style={styles.menuText}>
