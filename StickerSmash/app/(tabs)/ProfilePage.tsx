@@ -1,4 +1,4 @@
-// app/(tabs)/profile.tsx (or wherever your ProfileScreen lives)
+// app/(tabs)/profile.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -12,8 +12,8 @@ import * as SecureStore from "expo-secure-store";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
-import { ThemedView } from '../../components/themed-view';
-import { ThemedText } from '../../components/themed-text';
+import { ThemedView } from "../../components/themed-view";
+import { ThemedText } from "../../components/themed-text";
 import { Ionicons } from "@expo/vector-icons";
 
 const API_BASE =
@@ -137,6 +137,18 @@ export default function ProfileScreen() {
 
         {/* Menu Items */}
         <ThemedView isCard style={styles.menuSection}>
+          {/* NEW: Friend Requests entry */}
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push("//friendRequest")}
+          >
+            <Ionicons name="person-add-outline" size={24} color="#1E90FF" />
+            <ThemedText type="bodyLarge" style={styles.menuText}>
+              Friend Requests
+            </ThemedText>
+            <Ionicons name="chevron-forward" size={20} color="#999" />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="ticket-outline" size={24} color="#1E90FF" />
             <ThemedText type="bodyLarge" style={styles.menuText}>
