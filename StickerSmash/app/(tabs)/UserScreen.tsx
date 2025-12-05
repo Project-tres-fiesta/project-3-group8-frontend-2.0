@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
-  Text,
   FlatList,
   Image,
   TouchableOpacity,
@@ -12,15 +11,28 @@ import {
   Platform,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+
+import { ThemedView } from "../../components/themed-view";
+import { ThemedText } from "../../components/themed-text";
 
 const API_BASE = "https://group8-backend-0037104cd0e1.herokuapp.com";
-//const API_BASE = "http://localhost:8080"; 
+// const API_BASE = "http://localhost:8080";
 
 type User = {
   userId: number;
   userName: string | null;
   userEmail: string;
   profilePicture?: string | null;
+};
+
+type FriendshipDto = {
+  id: number;
+  user1Id: number;
+  user2Id: number;
+  status: string; // "pending" | "accepted" | "rejected"
+  requestedBy: number;
 };
 
 async function getJwt(): Promise<string | null> {
@@ -40,6 +52,8 @@ async function getJwt(): Promise<string | null> {
 }
 
 const UsersScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
+
   const [me, setMe] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,9 +70,11 @@ const UsersScreen: React.FC = () => {
         return;
       }
 
+      const authHeaders = { Authorization: `Bearer ${token}` };
+
       // 1) fetch my profile
       const meRes = await fetch(`${API_BASE}/api/users/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders,
       });
       if (!meRes.ok) throw new Error(`Profile error: ${meRes.status}`);
       const meData: User = await meRes.json();
@@ -66,16 +82,51 @@ const UsersScreen: React.FC = () => {
 
       // 2) fetch all users
       const usersRes = await fetch(`${API_BASE}/api/users`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders,
       });
       if (!usersRes.ok) throw new Error(`Users error: ${usersRes.status}`);
       const allUsers: User[] = await usersRes.json();
 
-      // 3) filter out myself
+      // 3) fetch existing friends (full user objects)
+      const friendsRes = await fetch(
+        `${API_BASE}/api/friendships/friends-users`,
+        { headers: authHeaders }
+      );
+
+      let friendIds = new Set<number>();
+      if (friendsRes.ok) {
+        const friends: User[] = await friendsRes.json();
+        friendIds = new Set(friends.map((u) => u.userId));
+      }
+
+      // 4) fetch pending friend requests for me
+      const pendingRes = await fetch(`${API_BASE}/api/friendships/pending`, {
+        headers: authHeaders,
+      });
+
+      let pendingIds = new Set<number>();
+      if (pendingRes.ok) {
+        const pending: FriendshipDto[] = await pendingRes.json();
+        pendingIds = new Set(
+          pending.map((f) =>
+            f.user1Id === meData.userId ? f.user2Id : f.user1Id
+          )
+        );
+      }
+
+      // 5) filter:
+      //    - not me
+      //    - not already friend
+      //    - no pending request either way
       const filtered =
         meData == null
           ? allUsers
-          : allUsers.filter((u) => u.userId !== meData.userId);
+          : allUsers.filter(
+              (u) =>
+                u.userId !== meData.userId &&
+                !friendIds.has(u.userId) &&
+                !pendingIds.has(u.userId)
+            );
 
       setUsers(filtered);
     } catch (e: any) {
@@ -100,64 +151,57 @@ const UsersScreen: React.FC = () => {
   }, [load]);
 
   const onAddFriend = async (toUserId: number) => {
-  try {
-    const token = await getJwt();
-    if (!token) {
-      Alert.alert("Not logged in", "Please log in first.");
-      return;
+    try {
+      const token = await getJwt();
+      if (!token) {
+        Alert.alert("Not logged in", "Please log in first.");
+        return;
+      }
+
+      setSendingTo(toUserId);
+
+      const res = await fetch(`${API_BASE}/api/friendships`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          toUserId,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Request failed: ${res.status}`);
+      }
+
+      Alert.alert("Request sent", "Your friend request is pending.");
+      // refresh so that user disappears from the list
+      await load();
+    } catch (e: any) {
+      const msg = e?.message || "Failed to send friend request.";
+      Alert.alert("Error", msg);
+    } finally {
+      setSendingTo(null);
     }
-
-    setSendingTo(toUserId);
-
-    const res = await fetch(`${API_BASE}/api/friendships`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        // 👇 this key must match your FriendRequestCreate DTO field name
-        toUserId: toUserId,
-      }),
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || `Request failed: ${res.status}`);
-    }
-
-    Alert.alert("Request sent", "Your friend request is pending.");
-  } catch (e: any) {
-    const msg = e?.message || "Failed to send friend request.";
-    Alert.alert("Error", msg);
-  } finally {
-    setSendingTo(null);
-  }
-};
-
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-        <Text style={{ marginTop: 8 }}>Loading users…</Text>
-      </View>
-    );
-  }
+  };
 
   const renderItem = ({ item }: { item: User }) => (
-    <View style={styles.row}>
+    <ThemedView isCard style={styles.row}>
       <Image
         source={{
-          uri:
-            item.profilePicture ??
-            "https://placehold.co/64x64?text=🙋",
+          uri: item.profilePicture ?? "https://placehold.co/64x64?text=🙋",
         }}
         style={styles.avatar}
       />
       <View style={{ flex: 1 }}>
-        <Text style={styles.name}>{item.userName ?? "(no name)"}</Text>
-        <Text style={styles.email}>{item.userEmail}</Text>
+        <ThemedText type="bodyLarge" style={styles.name}>
+          {item.userName ?? "(no name)"}
+        </ThemedText>
+        <ThemedText type="caption" style={styles.email}>
+          {item.userEmail}
+        </ThemedText>
       </View>
 
       <TouchableOpacity
@@ -169,38 +213,100 @@ const UsersScreen: React.FC = () => {
         disabled={sendingTo === item.userId}
       >
         {sendingTo === item.userId ? (
-          <ActivityIndicator />
+          <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.btnText}>Add friend</Text>
+          <ThemedText type="body" style={styles.btnText}>
+            Add friend
+          </ThemedText>
         )}
       </TouchableOpacity>
-    </View>
+    </ThemedView>
   );
 
+  if (loading) {
+    return (
+      <ThemedView
+        style={[
+          styles.container,
+          { paddingTop: insets.top, justifyContent: "center" },
+        ]}
+      >
+        <View style={styles.center}>
+          <ActivityIndicator />
+          <ThemedText type="body" style={{ marginTop: 8 }}>
+            Loading users…
+          </ThemedText>
+        </View>
+      </ThemedView>
+    );
+  }
+
   return (
-    <FlatList
-      data={users}
-      keyExtractor={(u) => String(u.userId)}
-      renderItem={renderItem}
-      ItemSeparatorComponent={() => <View style={styles.sep} />}
-      contentContainerStyle={
-        users.length === 0 ? styles.emptyContainer : undefined
-      }
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-      ListEmptyComponent={<Text style={styles.empty}>No users yet.</Text>}
-    />
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <ThemedText type="title" style={styles.headerTitle}>
+          Find Friends
+        </ThemedText>
+        <ThemedText type="caption" style={styles.headerSubtitle}>
+          Browse EventLink users and send friend requests
+        </ThemedText>
+      </View>
+
+      {users.length === 0 ? (
+        <View style={styles.center}>
+          <Ionicons name="people-outline" size={48} color="#1E90FF" />
+          <ThemedText type="headline" style={{ marginTop: 12 }}>
+            No users to add
+          </ThemedText>
+          <ThemedText type="body" style={{ opacity: 0.7, marginTop: 4 }}>
+            You might already be friends with everyone here.
+          </ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          data={users}
+          keyExtractor={(u) => String(u.userId)}
+          renderItem={renderItem}
+          ItemSeparatorComponent={() => <View style={styles.sep} />}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        />
+      )}
+    </ThemedView>
   );
 };
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  container: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+  },
+  headerTitle: {
+    fontWeight: "900",
+  },
+  headerSubtitle: {
+    opacity: 0.7,
+    marginTop: 4,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+  center: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
   row: {
     flexDirection: "row",
-    padding: 14,
     alignItems: "center",
-    backgroundColor: "#fff",
+    padding: 14,
+    marginBottom: 8,
   },
   avatar: {
     width: 48,
@@ -209,23 +315,29 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: "#eee",
   },
-  name: { fontSize: 16, fontWeight: "600" },
-  email: { fontSize: 13, color: "#666", marginTop: 2 },
+  name: {
+    fontWeight: "600",
+  },
+  email: {
+    opacity: 0.7,
+    marginTop: 2,
+  },
   btn: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: "#0d6efd",
+    backgroundColor: "#1E90FF",
     borderRadius: 8,
   },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: "#fff", fontWeight: "600" },
-  sep: { height: 1, backgroundColor: "#eee" },
-  emptyContainer: {
-    flexGrow: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  btnDisabled: {
+    opacity: 0.6,
   },
-  empty: { color: "#666" },
+  btnText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  sep: {
+    height: 8,
+  },
 });
 
 export default UsersScreen;

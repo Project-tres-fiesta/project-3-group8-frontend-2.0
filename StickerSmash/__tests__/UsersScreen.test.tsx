@@ -2,7 +2,7 @@
 // import React from "react";
 // import { render, waitFor } from "@testing-library/react-native";
 
-// import UsersScreen from "../UserScreen";
+import UsersScreen from "../app/(tabs)/UserScreen";
 
 // // --- Mocks ---
 
