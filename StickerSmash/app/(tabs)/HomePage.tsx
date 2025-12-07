@@ -1,88 +1,131 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { getUsers } from '../api/apiClient';  // Updated import path here
+import React from "react";
+import {
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+
+import { ThemedView } from "../../components/themed-view";
+import { ThemedText } from "../../components/themed-text";
 
 const HomePage: React.FC = () => {
-  
-  const [users, setUsers] = useState<any[]>([]);
-  useEffect(() => {
-    getUsers().then(setUsers).catch(console.error);
-  }, []);
-  
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Welcome to EventLink</Text>
-      <Text style={styles.description}>
-        Discover events & buy tickets.
-      </Text>
-      <Text style={styles.description}>
-        Browse upcoming games and events. See which events your friends are going to and never miss out on the fun.
-      </Text>
+    <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero */}
+        <ThemedView style={styles.heroSection}>
+          <Ionicons name="ticket-outline" size={64} color="#1E90FF" />
+          <ThemedText type="title" style={styles.title}>
+            Welcome to EventLink
+          </ThemedText>
+          <ThemedText type="body" style={styles.subtitle}>
+            Discover events, see where your friends are going, and never miss
+            the action.
+          </ThemedText>
 
-      <View style={styles.featureCard}>
-        <Text style={styles.featureTitle}>Buy Tickets Easily</Text>
-        <Text style={styles.featureDescription}>
-          Secure your seat with a few clicks and manage your orders smoothly.
-        </Text>
-      </View>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push("//eventsPage")}
+          >
+            <ThemedText type="bodyLarge" style={styles.primaryButtonText}>
+              Browse Events
+            </ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
 
-      <View style={styles.featureCard}>
-        <Text style={styles.featureTitle}>Friends & Social</Text>
-        <Text style={styles.featureDescription}>
-          Know what events your friends plan to attend and join them for a great time.
-        </Text>
-      </View>
+        {/* Feature cards */}
+        <ThemedView isCard style={styles.card}>
+          <Ionicons name="cart-outline" size={24} color="#1E90FF" />
+          <ThemedText type="headline" style={styles.cardTitle}>
+            Buy Tickets Easily
+          </ThemedText>
+          <ThemedText type="body" style={styles.cardText}>
+            Secure your seat in just a few taps and keep track of the events
+            you’re planning to attend.
+          </ThemedText>
+        </ThemedView>
 
-      
-      <View style={styles.featureCard}>
-        <Text style={styles.featureTitle}>User List (from backend)</Text>
-        {users.length === 0 ? (
-          <Text style={styles.featureDescription}>Loading users...</Text>
-        ) : (
-          <View>
-            {users.map(u => (
-              <Text key={u.userId} style={styles.featureDescription}>
-                {u.userName} ({u.userEmail})
-              </Text>
-            ))}
-          </View>
-        )}
-      </View>
-    </ScrollView>
+        <ThemedView isCard style={styles.card}>
+          <Ionicons name="people-outline" size={24} color="#1E90FF" />
+          <ThemedText type="headline" style={styles.cardTitle}>
+            Friends & Social
+          </ThemedText>
+          <ThemedText type="body" style={styles.cardText}>
+            Add friends, see which games they’re going to, and join them for a
+            great time.
+          </ThemedText>
+        </ThemedView>
+
+        <ThemedView isCard style={styles.card}>
+          <Ionicons name="map-outline" size={24} color="#1E90FF" />
+          <ThemedText type="headline" style={styles.cardTitle}>
+            Groups & Plans
+          </ThemedText>
+          <ThemedText type="body" style={styles.cardText}>
+            Join groups, share events, and coordinate plans so everyone ends up
+            in the same section.
+          </ThemedText>
+        </ThemedView>
+      </ScrollView>
+    </ThemedView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    backgroundColor: '#fff',
-    alignItems: 'center',
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+  },
+  heroSection: {
+    alignItems: "center",
+    marginBottom: 28,
+    paddingTop: 12,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginVertical: 10,
+    marginTop: 12,
+    fontWeight: "900",
+    textAlign: "center",
   },
-  description: {
-    fontSize: 16,
-    marginVertical: 6,
-    textAlign: 'center',
+  subtitle: {
+    marginTop: 8,
+    textAlign: "center",
+    opacity: 0.8,
   },
-  featureCard: {
-    backgroundColor: '#e0e0e0',
-    borderRadius: 8,
-    padding: 15,
-    marginTop: 15,
-    width: '100%',
+  primaryButton: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: "#1E90FF",
   },
-  featureTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 5,
+  primaryButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    textAlign: "center",
   },
-  featureDescription: {
-    fontSize: 14,
+  card: {
+    marginBottom: 16,
+    padding: 18,
+    flexDirection: "column",
+    gap: 8,
+  },
+  cardTitle: {
+    fontWeight: "700",
+  },
+  cardText: {
+    opacity: 0.85,
   },
 });
 

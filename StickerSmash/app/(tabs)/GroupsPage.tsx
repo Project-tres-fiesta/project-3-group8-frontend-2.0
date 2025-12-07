@@ -1,15 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  ScrollView,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { ThemedView } from "../../components/themed-view";
+import { ThemedText } from "../../components/themed-text";
 
 const API_BASE =
-  process.env.NODE_ENV === 'development'
-    ? 'http://localhost:8080'
-    : 'https://group8-backend-0037104cd0e1.herokuapp.com';
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:8080"
+    : "https://group8-backend-0037104cd0e1.herokuapp.com";
 
 export default function GroupsPage() {
   const router = useRouter();
-  const token = localStorage.getItem('jwt');
+  const token = localStorage.getItem("jwt");
 
   const getUserId = async (token: string): Promise<number | null> => {
     try {
@@ -22,7 +32,7 @@ export default function GroupsPage() {
       const data = await res.json();
       return data.userId;
     } catch (err) {
-      console.error('Error fetching profile for user ID:', err);
+      console.error("Error fetching profile for user ID:", err);
       return null;
     }
   };
@@ -30,9 +40,9 @@ export default function GroupsPage() {
   const createGroup = async (groupName: string, userId: number) => {
     try {
       const res = await fetch(`${API_BASE}/api/groups`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ groupName: groupName, userId: userId }),
@@ -40,13 +50,13 @@ export default function GroupsPage() {
       if (!res.ok) throw new Error(`Backend error: ${res.status}`);
       return await res.json();
     } catch (err) {
-      console.error('Error creating group:', err);
+      console.error("Error creating group:", err);
       return null;
     }
   };
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [groupName, setGroupName] = useState('');
+  const [groupName, setGroupName] = useState("");
   const [groups, setGroups] = useState<any[]>([]);
 
   const fetchGroups = async () => {
@@ -57,7 +67,7 @@ export default function GroupsPage() {
       const data = await res.json();
       setGroups(data);
     } catch (err) {
-      console.error('Error fetching groups:', err);
+      console.error("Error fetching groups:", err);
     }
   };
 
@@ -70,7 +80,7 @@ export default function GroupsPage() {
     const userId = await getUserId(token!);
     if (!userId) return;
     await createGroup(groupName, userId);
-    setGroupName('');
+    setGroupName("");
     setModalVisible(false);
     fetchGroups();
   };
@@ -81,15 +91,15 @@ export default function GroupsPage() {
       if (!userId) return;
 
       const res = await fetch(`${API_BASE}/api/groupMembers/add`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           id: {
-            groupId: groupId, // the group the user wants to join
-            userId: userId, // the logged-in user's ID
+            groupId: groupId,
+            userId: userId,
           },
         }),
       });
@@ -97,87 +107,188 @@ export default function GroupsPage() {
       if (!res.ok) throw new Error(`Backend error: ${res.status}`);
       console.log(`User ${userId} added to group ${groupId}`);
     } catch (err) {
-      console.error('Error joining group:', err);
+      console.error("Error joining group:", err);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Your Groups</Text>
+    <ThemedView style={styles.container}>
+      <ThemedText type="title" style={styles.title}>
+        Your Groups
+      </ThemedText>
 
-      <TouchableOpacity style={styles.createButton} onPress={() => setModalVisible(true)}>
-        <Text style={styles.createButtonText}>Create Group</Text>
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => setModalVisible(true)}
+      >
+        <ThemedText type="bodyLarge" style={styles.createButtonText}>
+          Create Group
+        </ThemedText>
       </TouchableOpacity>
 
-      {/* Display groups */}
-      <View style={{ marginTop: 20 }}>
+      <ScrollView
+        style={{ marginTop: 20 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
+      >
         {groups.map((group: any) => (
-          <View
-            key={group.groupId}
-            style={{ padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 }}
-          >
+          <ThemedView key={group.groupId} isCard style={styles.groupCard}>
             <TouchableOpacity
-              onPress={() => router.push(`/GroupDetailsPage?groupId=${group.groupId}`)}
-              style={{ padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginBottom: 10 }}
+              onPress={() =>
+                router.push(`/GroupDetailsPage?groupId=${group.groupId}`)
+              }
+              style={styles.groupHeader}
+              activeOpacity={0.8}
             >
-              <Text style={{ fontSize: 16 }}>{group.groupName}</Text>
+              <ThemedText type="bodyLarge" style={styles.groupName}>
+                {group.groupName}
+              </ThemedText>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#4A90E2',
-                padding: 8,
-                borderRadius: 6,
-                marginTop: 6,
-                alignItems: 'center',
-              }}
-              onPress={() => joinGroup(group.groupId)}
-            >
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>Join Group</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-      </View>
 
+            <TouchableOpacity
+              style={styles.joinButton}
+              onPress={() => joinGroup(group.groupId)}
+              activeOpacity={0.85}
+            >
+              <ThemedText type="body" style={styles.joinButtonText}>
+                Join Group
+              </ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+        ))}
+      </ScrollView>
+
+      {/* Create Group Modal */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Create a New Group</Text>
+          <ThemedView isCard style={styles.modalContent}>
+            <ThemedText type="headline" style={styles.modalTitle}>
+              Create a New Group
+            </ThemedText>
 
             <TextInput
               style={styles.input}
               placeholder="Enter group name"
+              placeholderTextColor="#888"
               value={groupName}
               onChangeText={setGroupName}
             />
 
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
+              >
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleCreateGroup}>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleCreateGroup}
+              >
                 <Text style={styles.saveText}>Create</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ThemedView>
         </View>
       </Modal>
-    </View>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
-  createButton: { backgroundColor: '#4A90E2', padding: 15, borderRadius: 10, alignItems: 'center' },
-  createButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '80%', backgroundColor: 'white', padding: 20, borderRadius: 12, elevation: 5 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 20 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-between' },
-  cancelButton: { padding: 10 },
-  cancelText: { fontSize: 16, color: 'red' },
-  saveButton: { backgroundColor: '#4A90E2', padding: 10, borderRadius: 8 },
-  saveText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#000", // match dark theme
+  },
+  title: {
+    fontWeight: "900",
+    marginBottom: 16,
+  },
+  createButton: {
+    backgroundColor: "#1E90FF",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: "#1E90FF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  createButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  groupCard: {
+    marginBottom: 14,
+    padding: 14,
+    backgroundColor: "#111",
+    borderRadius: 14,
+  },
+  groupHeader: {
+    paddingVertical: 6,
+    marginBottom: 8,
+  },
+  groupName: {
+    fontWeight: "700",
+  },
+  joinButton: {
+    backgroundColor: "#1E90FF",
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  joinButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  modalContent: {
+    width: "85%",
+    borderRadius: 16,
+    padding: 20,
+    backgroundColor: "#111",
+  },
+  modalTitle: {
+    marginBottom: 15,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#444",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 20,
+    color: "#fff",
+    backgroundColor: "#1a1a1a",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 16,
+  },
+  cancelButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  cancelText: {
+    fontSize: 16,
+    color: "#ff4d4f",
+  },
+  saveButton: {
+    backgroundColor: "#1E90FF",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+  saveText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
 });
