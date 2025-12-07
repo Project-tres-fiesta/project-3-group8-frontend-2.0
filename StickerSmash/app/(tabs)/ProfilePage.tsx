@@ -1,3 +1,4 @@
+// app/(tabs)/profile.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -141,6 +142,70 @@ export default function ProfileScreen() {
     router.replace("/"); // goes back to index -> redirect to login
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure? This will permanently delete your account and related data.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const token = await getJwt();
+              if (!token) {
+                Alert.alert(
+                  "Not logged in",
+                  "Please log in again before deleting your account."
+                );
+                return;
+              }
+
+              const res = await fetch(`${API_BASE}/api/users/account`, {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+
+              if (res.status === 204 || res.status === 200) {
+                await clearJwt();
+                Alert.alert(
+                  "Account deleted",
+                  "Your account has been deleted."
+                );
+                router.replace("/");
+              } else if (res.status === 401) {
+                Alert.alert(
+                  "Unauthorized",
+                  "You are not authorized. Please log in again."
+                );
+              } else if (res.status === 404) {
+                Alert.alert(
+                  "Not found",
+                  "Your account could not be found. It may have already been deleted."
+                );
+              } else {
+                const text = await res.text().catch(() => "");
+                Alert.alert(
+                  "Error",
+                  text || `Failed to delete account (status ${res.status}).`
+                );
+              }
+            } catch (e: any) {
+              console.error("Error deleting account:", e);
+              Alert.alert(
+                "Error",
+                e?.message || "Something went wrong deleting your account."
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView style={styles.scrollContent}>
@@ -199,7 +264,7 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
-          {/* My Events (was My Tickets) */}
+          {/* My Events */}
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push("../BookedEventsPage")}
@@ -211,7 +276,7 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
-          {/* Notifications – placeholder, keep or remove as you wish */}
+          {/* Notifications – still placeholder */}
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="notifications-outline" size={24} color="#1E90FF" />
             <ThemedText type="bodyLarge" style={styles.menuText}>
@@ -226,8 +291,21 @@ export default function ProfileScreen() {
           isCard
           style={[styles.menuSection, styles.accountSection]}
         >
-          {/* Settings row removed */}
+          {/* Delete Account */}
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={handleDeleteAccount}
+          >
+            <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+            <ThemedText
+              type="bodyLarge"
+              style={[styles.menuText, { color: "#FF3B30" }]}
+            >
+              Delete Account
+            </ThemedText>
+          </TouchableOpacity>
 
+          {/* Sign Out */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
             <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
             <ThemedText type="bodyLarge" style={styles.logoutText}>
