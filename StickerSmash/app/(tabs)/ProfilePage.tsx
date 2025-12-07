@@ -143,71 +143,88 @@ export default function ProfileScreen() {
   };
 
   const handleDeleteAccount = () => {
-  console.log("[Profile] Delete Account pressed");   // 👈 log immediately
+  console.log("[Profile] Delete Account pressed");
 
-  Alert.alert(
-    "Delete Account",
-    "Are you sure? This will permanently delete your account and related data.",
-    [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          console.log("[Profile] Confirmed delete"); // 👈 log when user taps Delete
-          try {
-            const token = await getJwt();
-            console.log("[Profile] JWT for delete:", token);
+  const doDelete = async () => {
+    try {
+      const token = await getJwt();
+      console.log("[Profile] JWT for delete:", token);
 
-            if (!token) {
-              Alert.alert(
-                "Not logged in",
-                "Please log in again before deleting your account."
-              );
-              return;
-            }
+      if (!token) {
+        Alert.alert(
+          "Not logged in",
+          "Please log in again before deleting your account."
+        );
+        return;
+      }
 
-            const res = await fetch(`${API_BASE}/api/users/account`, {
-              method: "DELETE",
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-
-            console.log("[Profile] Delete response status:", res.status);
-
-            if (res.status === 204 || res.status === 200) {
-              await clearJwt();
-              Alert.alert("Account deleted", "Your account has been deleted.");
-              router.replace("/");
-            } else if (res.status === 401) {
-              Alert.alert(
-                "Unauthorized",
-                "You are not authorized. Please log in again."
-              );
-            } else if (res.status === 404) {
-              Alert.alert(
-                "Not found",
-                "Your account could not be found. It may have already been deleted."
-              );
-            } else {
-              const text = await res.text().catch(() => "");
-              Alert.alert(
-                "Error",
-                text || `Failed to delete account (status ${res.status}).`
-              );
-            }
-          } catch (e: any) {
-            console.error("Error deleting account:", e);
-            Alert.alert(
-              "Error",
-              e?.message || "Something went wrong deleting your account."
-            );
-          }
+      const res = await fetch(`${API_BASE}/api/users/account`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      },
-    ]
-  );
+      });
+
+      console.log("[Profile] Delete response status:", res.status);
+
+      if (res.status === 204 || res.status === 200) {
+        await clearJwt();
+        Alert.alert("Account deleted", "Your account has been deleted.");
+        router.replace("/");
+      } else if (res.status === 401) {
+        Alert.alert(
+          "Unauthorized",
+          "You are not authorized. Please log in again."
+        );
+      } else if (res.status === 404) {
+        Alert.alert(
+          "Not found",
+          "Your account could not be found. It may have already been deleted."
+        );
+      } else {
+        const text = await res.text().catch(() => "");
+        Alert.alert(
+          "Error",
+          text || `Failed to delete account (status ${res.status}).`
+        );
+      }
+    } catch (e: any) {
+      console.error("Error deleting account:", e);
+      Alert.alert(
+        "Error",
+        e?.message || "Something went wrong deleting your account."
+      );
+    }
+  };
+
+  if (Platform.OS === "web") {
+    // Web: Alert buttons don't work, so use window.confirm
+    if (typeof window !== "undefined") {
+      const ok = window.confirm(
+        "Are you sure? This will permanently delete your account and related data."
+      );
+      if (ok) {
+        void doDelete();
+      }
+    }
+  } else {
+    // Native: use React Native Alert with buttons
+    Alert.alert(
+      "Delete Account",
+      "Are you sure? This will permanently delete your account and related data.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            console.log("[Profile] Confirmed delete");
+            void doDelete();
+          },
+        },
+      ]
+    );
+  }
 };
 
   return (
