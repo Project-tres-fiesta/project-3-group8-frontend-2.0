@@ -75,7 +75,7 @@ export default function GoogleLoginWeb() {
 
           await sendCodeToBackend(code, request.codeVerifier);
           
-          router.replace('/(tabs)');
+          router.replace('/(tabs)/HomePage');
         } catch (err) {
           console.error("Error handling OAuth response:", err);
         }

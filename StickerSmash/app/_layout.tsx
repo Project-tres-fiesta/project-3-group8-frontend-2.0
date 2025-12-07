@@ -15,13 +15,19 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        {/* your tabs */}
+
+        <Stack.Screen
+          name="LoginPage"
+          options={{
+            headerShown: false,
+            gestureEnabled: false, 
+          }}
+        />
+
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-        {/* existing modal */}
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
 
-        {/* NEW: friend requests screen, pushed on top of tabs */}
         <Stack.Screen
           name="friend-requests"
           options={{ title: 'Friend Requests' }}

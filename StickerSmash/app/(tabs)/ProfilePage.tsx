@@ -63,9 +63,11 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [eventsCount, setEventsCount] = useState(0);
 
   useEffect(() => {
-    const getProfile = async () => {
+    const loadProfileAndStats = async () => {
       const token = await getJwt();
       console.log("Token sent to backend:", token);
 
@@ -75,6 +77,7 @@ export default function ProfileScreen() {
       }
 
       try {
+        // 1) Profile
         const res = await fetch(`${API_BASE}/api/users/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -83,12 +86,54 @@ export default function ProfileScreen() {
         const data: Profile = await res.json();
         console.log("User profile:", data);
         setProfile(data);
+
+        // 2) Friends list (for count)
+        try {
+          const friendsRes = await fetch(
+            `${API_BASE}/api/friendships/friends-users`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          if (friendsRes.ok) {
+            const friends = await friendsRes.json();
+            setFriendsCount(Array.isArray(friends) ? friends.length : 0);
+          } else {
+            console.warn(
+              "Failed to fetch friends for count:",
+              friendsRes.status
+            );
+          }
+        } catch (e) {
+          console.warn("Error loading friends count", e);
+        }
+
+        // 3) User events (booked / saved)
+        try {
+          const eventsRes = await fetch(
+            `${API_BASE}/api/user-events/user/${data.userId}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          if (eventsRes.ok) {
+            const events = await eventsRes.json();
+            setEventsCount(Array.isArray(events) ? events.length : 0);
+          } else {
+            console.warn(
+              "Failed to fetch user events for count:",
+              eventsRes.status
+            );
+          }
+        } catch (e) {
+          console.warn("Error loading events count", e);
+        }
       } catch (err) {
         console.error("Error fetching profile:", err);
       }
     };
 
-    getProfile();
+    loadProfileAndStats();
   }, []);
 
   const handleSignOut = async () => {
@@ -96,6 +141,91 @@ export default function ProfileScreen() {
     Alert.alert("Signed out", "You have been signed out.");
     router.replace("/"); // goes back to index -> redirect to login
   };
+
+  const handleDeleteAccount = () => {
+  console.log("[Profile] Delete Account pressed");
+
+  const doDelete = async () => {
+    try {
+      const token = await getJwt();
+      console.log("[Profile] JWT for delete:", token);
+
+      if (!token) {
+        Alert.alert(
+          "Not logged in",
+          "Please log in again before deleting your account."
+        );
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/users/account`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("[Profile] Delete response status:", res.status);
+
+      if (res.status === 204 || res.status === 200) {
+        await clearJwt();
+        Alert.alert("Account deleted", "Your account has been deleted.");
+        router.replace("/");
+      } else if (res.status === 401) {
+        Alert.alert(
+          "Unauthorized",
+          "You are not authorized. Please log in again."
+        );
+      } else if (res.status === 404) {
+        Alert.alert(
+          "Not found",
+          "Your account could not be found. It may have already been deleted."
+        );
+      } else {
+        const text = await res.text().catch(() => "");
+        Alert.alert(
+          "Error",
+          text || `Failed to delete account (status ${res.status}).`
+        );
+      }
+    } catch (e: any) {
+      console.error("Error deleting account:", e);
+      Alert.alert(
+        "Error",
+        e?.message || "Something went wrong deleting your account."
+      );
+    }
+  };
+
+  if (Platform.OS === "web") {
+    // Web: Alert buttons don't work, so use window.confirm
+    if (typeof window !== "undefined") {
+      const ok = window.confirm(
+        "Are you sure? This will permanently delete your account and related data."
+      );
+      if (ok) {
+        void doDelete();
+      }
+    }
+  } else {
+    // Native: use React Native Alert with buttons
+    Alert.alert(
+      "Delete Account",
+      "Are you sure? This will permanently delete your account and related data.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            console.log("[Profile] Confirmed delete");
+            void doDelete();
+          },
+        },
+      ]
+    );
+  }
+};
 
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top }]}>
@@ -113,23 +243,17 @@ export default function ProfileScreen() {
           </ThemedText>
         </ThemedView>
 
-        {/* Stats (dummy for now) */}
+        {/* Stats (now real counts) */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <ThemedText type="titleLarge" style={styles.statNumber}>
-              12
-            </ThemedText>
-            <ThemedText type="caption">Tickets</ThemedText>
-          </View>
-          <View style={styles.statItem}>
-            <ThemedText type="titleLarge" style={styles.statNumber}>
-              5
+              {friendsCount}
             </ThemedText>
             <ThemedText type="caption">Friends</ThemedText>
           </View>
           <View style={styles.statItem}>
             <ThemedText type="titleLarge" style={styles.statNumber}>
-              23
+              {eventsCount}
             </ThemedText>
             <ThemedText type="caption">Events</ThemedText>
           </View>
@@ -137,7 +261,7 @@ export default function ProfileScreen() {
 
         {/* Menu Items */}
         <ThemedView isCard style={styles.menuSection}>
-          {/* NEW: Friend Requests entry */}
+          {/* Friend Requests */}
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push("/friendRequests")}
@@ -149,6 +273,7 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
+          {/* Friends list */}
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push("../FriendsPage")}
@@ -160,22 +285,19 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          {/* My Events */}
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push("../BookedEventsPage")}
+          >
             <Ionicons name="ticket-outline" size={24} color="#1E90FF" />
             <ThemedText type="bodyLarge" style={styles.menuText}>
-              My Tickets
+              My Events
             </ThemedText>
             <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="card-outline" size={24} color="#1E90FF" />
-            <ThemedText type="bodyLarge" style={styles.menuText}>
-              Payment Methods
-            </ThemedText>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-
+          {/* Notifications – still placeholder */}
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="notifications-outline" size={24} color="#1E90FF" />
             <ThemedText type="bodyLarge" style={styles.menuText}>
@@ -190,14 +312,21 @@ export default function ProfileScreen() {
           isCard
           style={[styles.menuSection, styles.accountSection]}
         >
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="settings-outline" size={24} color="#1E90FF" />
-            <ThemedText type="bodyLarge" style={styles.menuText}>
-              Settings
+          {/* Delete Account */}
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={handleDeleteAccount}
+          >
+            <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+            <ThemedText
+              type="bodyLarge"
+              style={[styles.menuText, { color: "#FF3B30" }]}
+            >
+              Delete Account
             </ThemedText>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
           </TouchableOpacity>
 
+          {/* Sign Out */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
             <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
             <ThemedText type="bodyLarge" style={styles.logoutText}>

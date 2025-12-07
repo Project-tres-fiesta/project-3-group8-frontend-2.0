@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { ThemedView } from '../../components/themed-view';
-import { ThemedText } from '../../components/themed-text';
-import GitHubTestLogin from '../../components/GitHubLogin';
-import GoogleLoginWeb from '../../components/GoogleLoginWeb';
+import { ThemedView } from '../components/themed-view';
+import { ThemedText } from '../components/themed-text';
+import GitHubTestLogin from '../components/GitHubLogin';
+import GoogleLoginWeb from '../components/GoogleLoginWeb';
 
 export default function LoginScreen() {
   return (
