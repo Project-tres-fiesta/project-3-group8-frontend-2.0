@@ -34,7 +34,7 @@ const HomePage: React.FC = () => {
 
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => router.push("//eventsPage")}
+            onPress={() => router.push("/EventsPage")}
           >
             <ThemedText type="bodyLarge" style={styles.primaryButtonText}>
               Browse Events
