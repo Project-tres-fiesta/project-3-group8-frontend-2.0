@@ -4,7 +4,6 @@ import GroupsPage from '../app/(tabs)/GroupsPage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 global.fetch = jest.fn();
-
 jest.mock('@react-native-async-storage/async-storage');
 
 describe('GroupsPage', () => {
