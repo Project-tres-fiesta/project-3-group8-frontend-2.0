@@ -1,50 +1,52 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react-native';
-import BookedEventsPage from '../app/(tabs)/BookedEventsPage';
+import GroupsPage from '../app/(tabs)/GroupsPage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 global.fetch = jest.fn();
 jest.mock('@react-native-async-storage/async-storage');
 
-describe('BookedEventsPage', () => {
+describe('GroupsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders booked events page header', () => {
-    render(<BookedEventsPage />);
-    expect(screen.getByText(/My Booked Events/i)).toBeTruthy();
+  it('renders groups page title', () => {
+    render(<GroupsPage />);
+    expect(screen.getByText(/Your Groups/i)).toBeTruthy();
   });
 
-  it('fetches and displays booked events', async () => {
-    const mockEvents = [
-      { eventId: 1, title: 'Concert Event', eventDate: '2025-12-20', venueName: 'Test Arena' }
+  it('fetches and displays groups', async () => {
+    const mockGroups = [
+      { groupsId: 1, groupsName: 'Test Group 1' },
+      { groupsId: 2, groupsName: 'Test Group 2' }
     ];
 
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue('mockToken');
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      json: async () => mockEvents
+      json: async () => mockGroups
     });
 
-    render(<BookedEventsPage />);
+    render(<GroupsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Concert Event')).toBeTruthy();
+      expect(screen.getByText('Test Group 1')).toBeTruthy();
+      expect(screen.getByText('Test Group 2')).toBeTruthy();
     });
   });
 
-  it('shows empty state when no events are booked', async () => {
+  it('shows empty state when no groups exist', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue('mockToken');
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => []
     });
 
-    render(<BookedEventsPage />);
+    render(<GroupsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/No events booked/i)).toBeTruthy();
+      expect(screen.getByText(/No groups/i)).toBeTruthy();
     });
   });
 });

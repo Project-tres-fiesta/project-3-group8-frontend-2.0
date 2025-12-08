@@ -1,28 +1,50 @@
- import React from 'react';
- import { render, screen } from '@testing-library/react-native';
-import EventsPage from "../app/(tabs)/EventsPage";
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import EventsPage from '../app/(tabs)/EventsPage';
 
- describe('EventsPage', () => {
-   it('renders events list header', () => {
-     render(
-       <EventsPage />
-     );
-     expect(screen.getByText(/Upcoming Events/i)).toBeTruthy();
-   });
- });
+global.fetch = jest.fn();
 
-//  import React from 'react';
-//  import { render, screen } from '@testing-library/react-native';
-//  import EventsPage from '../EventsPage';
+describe('EventsPage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-//  describe('EventsPage', () => {
-//    it('renders events list header', () => {
-//      render(
-//        <EventsPage
-//          navigation={{ navigate: (_screen: string, _params: { event: any }) => {} }}
-//        />
-//      );
-//      expect(screen.getByText(/Upcoming Events/i)).toBeTruthy();
-//    });
-//  });
+  it('renders events list header', () => {
+    render(<EventsPage />);
+    expect(screen.getByText(/Upcoming Events/i)).toBeTruthy();
+  });
 
+  it('fetches and displays events from API', async () => {
+    const mockEvents = [
+      { id: '1', name: 'Rock Concert', dates: { start: { localDate: '2025-12-20' } } }
+    ];
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ _embedded: { events: mockEvents } })
+    });
+
+    render(<EventsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Rock Concert')).toBeTruthy();
+    });
+  });
+
+  it('handles search input', async () => {
+    render(<EventsPage />);
+
+    const searchInput = screen.getByPlaceholderText(/Search events/i);
+    fireEvent.changeText(searchInput, 'concert');
+
+    expect(searchInput.props.value).toBe('concert');
+  });
+
+  it('displays loading state while fetching', () => {
+    (global.fetch as jest.Mock).mockImplementation(() => new Promise(() => {}));
+
+    render(<EventsPage />);
+    
+    expect(screen.getByText(/Loading/i)).toBeTruthy();
+  });
+});
