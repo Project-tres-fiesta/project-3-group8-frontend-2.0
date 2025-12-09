@@ -327,7 +327,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           {/* Sign Out */}
-          <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}  testID="signOutButton" >
             <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
             <ThemedText type="bodyLarge" style={styles.logoutText}>
               Sign Out
