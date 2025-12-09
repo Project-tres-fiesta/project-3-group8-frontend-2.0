@@ -1,58 +1,107 @@
-import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react-native';
-import GroupDetailsPage from '../app/(tabs)/GroupDetailsPage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// __tests__/GroupDetailsPage.test.tsx
+import React from "react";
+import { render, waitFor } from "@testing-library/react-native";
+import GroupDetailsPage from "../app/(tabs)/GroupDetailsPage";
 
-global.fetch = jest.fn();
-jest.mock('@react-native-async-storage/async-storage');
+// Mock expo-router so we always get a groupId
+jest.mock("expo-router", () => ({
+  useLocalSearchParams: () => ({ groupId: "1" }),
+}));
 
-describe('GroupDetailsPage', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+// ThemedView -> simple View wrapper
+jest.mock("../components/themed-view", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+  return {
+    ThemedView: (props: any) => <View {...props}>{props.children}</View>,
+  };
+});
 
-  it('renders group details page', () => {
-    render(<GroupDetailsPage />);
-    expect(screen.getByText(/Group Details/i)).toBeTruthy();
-  });
+// ThemedText -> real Text so text matching works as expected
+jest.mock("../components/themed-text", () => {
+  const React = require("react");
+  const { Text } = require("react-native");
+  return {
+    ThemedText: (props: any) => <Text {...props}>{props.children}</Text>,
+  };
+});
 
-  it('fetches and displays group information', async () => {
-    const mockGroup = {
-      groupsId: 1,
-      groupsName: 'Test Group',
-      groupsDescription: 'A test group'
-    };
+// Provide a basic localStorage for the component to read JWT from
+beforeAll(() => {
+  (global as any).localStorage = {
+    getItem: jest.fn(() => "fake-jwt"),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+    clear: jest.fn(),
+  };
+});
 
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('mockToken');
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => mockGroup
-    });
+afterEach(() => {
+  jest.resetAllMocks();
+});
 
-    render(<GroupDetailsPage />);
+describe("GroupDetailsPage", () => {
+  it("renders group events and members from API", async () => {
+    // Mock fetch sequence:
+    // 1) GET /api/groupEvents/1  -> [101]
+    // 2) GET /api/events/stored/101 -> { event: { ... } }
+    // 3) GET /api/groupMembers/group/1 -> [10]
+    // 4) GET /api/users/10 -> { ...user }
+    (global as any).fetch = jest
+      .fn()
+      // 1) groupEvents
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [101],
+      } as any)
+      // 2) stored event
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          event: {
+            id: 101,
+            title: "Test Event",
+            description: "A cool test event",
+            eventDate: "2025-12-10",
+            eventTime: "19:00:00",
+            imageUrl: "",
+            venueName: "Test Arena",
+            venueCity: "Test City",
+            venueState: "CA",
+            venueCountry: "US",
+            category: "Sports",
+            genre: "Basketball",
+            eventUrl: "https://example.com/event",
+          },
+        }),
+      } as any)
+      // 3) group members
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [10],
+      } as any)
+      // 4) user details
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          userId: 10,
+          userName: "Alice User",
+          userEmail: "alice@example.com",
+          profilePicture: null,
+        }),
+      } as any);
 
+    const { getByText } = render(<GroupDetailsPage />);
+
+    // Wait for the group title to appear
     await waitFor(() => {
-      expect(screen.getByText('Test Group')).toBeTruthy();
-    });
-  });
-
-  it('displays group members', async () => {
-    const mockMembers = [
-      { userId: 1, userName: 'User1' },
-      { userId: 2, userName: 'User2' }
-    ];
-
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('mockToken');
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => mockMembers
+      expect(getByText("Group ID: 1")).toBeTruthy();
     });
 
-    render(<GroupDetailsPage />);
+    // Event title rendered
+    expect(getByText("Test Event")).toBeTruthy();
 
-    await waitFor(() => {
-      expect(screen.getByText('User1')).toBeTruthy();
-      expect(screen.getByText('User2')).toBeTruthy();
-    });
+    // Member name rendered
+    expect(getByText("Alice User")).toBeTruthy();
   });
 });

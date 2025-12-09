@@ -1,52 +1,110 @@
-import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react-native';
-import GroupsPage from '../app/(tabs)/GroupsPage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// __tests__/GroupsPage.test.tsx
 
-global.fetch = jest.fn();
-jest.mock('@react-native-async-storage/async-storage');
+import React from "react";
+import { render, waitFor, fireEvent } from "@testing-library/react-native";
+import GroupsPage from "../app/(tabs)/GroupsPage"; // <-- change path if needed
 
-describe('GroupsPage', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+// Mock expo-router so useRouter() doesn’t blow up
+jest.mock("expo-router", () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+  }),
+}));
 
-  it('renders groups page title', () => {
-    render(<GroupsPage />);
-    expect(screen.getByText(/Your Groups/i)).toBeTruthy();
-  });
+// Very small mock for ThemedView/Text if they do anything fancy.
+// If your existing tests already mock these, you can remove this block.
+jest.mock("../components/themed-view", () => {
+  const React = require("react");
+  return {
+    ThemedView: ({ children, ...rest }: any) =>
+      React.createElement("View", rest, children),
+  };
+});
 
-  it('fetches and displays groups', async () => {
-    const mockGroups = [
-      { groupsId: 1, groupsName: 'Test Group 1' },
-      { groupsId: 2, groupsName: 'Test Group 2' }
-    ];
+jest.mock("../components/themed-text", () => {
+  const React = require("react");
+  return {
+    ThemedText: ({ children, ...rest }: any) =>
+      React.createElement("Text", rest, children),
+  };
+});
 
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('mockToken');
-    (global.fetch as jest.Mock).mockResolvedValue({
+// Provide a basic localStorage for the component to read jwt from
+beforeAll(() => {
+  (global as any).localStorage = {
+    getItem: jest.fn().mockReturnValue("fake-jwt"),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+    clear: jest.fn(),
+  };
+});
+
+// Mock fetch for all calls inside GroupsPage
+beforeEach(() => {
+  (global as any).fetch = jest.fn((url: string, _opts?: any) => {
+    if (url.includes("/api/users/profile")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ userId: 123 }),
+      });
+    }
+
+    if (url.includes("/api/groups")) {
+      // used both for initial fetch and after create
+      return Promise.resolve({
+        ok: true,
+        json: async () => [
+          { groupId: 1, groupName: "Test Group 1" },
+          { groupId: 2, groupName: "Test Group 2" },
+        ],
+      });
+    }
+
+    if (url.includes("/api/groupMembers/add")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      });
+    }
+
+    if (url.includes("/api/groups") && _opts?.method === "POST") {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ groupId: 3, groupName: "Created Group" }),
+      });
+    }
+
+    return Promise.resolve({
       ok: true,
-      json: async () => mockGroups
+      json: async () => ({}),
     });
+  });
+});
 
-    render(<GroupsPage />);
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
+describe("GroupsPage", () => {
+  it("renders header and loads groups from backend", async () => {
+    const { getByText } = render(<GroupsPage />);
+
+    // Header is visible immediately
+    expect(getByText("Your Groups")).toBeTruthy();
+
+    // Groups loaded via fetch
     await waitFor(() => {
-      expect(screen.getByText('Test Group 1')).toBeTruthy();
-      expect(screen.getByText('Test Group 2')).toBeTruthy();
+      expect(getByText("Test Group 1")).toBeTruthy();
+      expect(getByText("Test Group 2")).toBeTruthy();
     });
   });
 
-  it('shows empty state when no groups exist', async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('mockToken');
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => []
-    });
+  it("opens the create group modal when Create Group is pressed", () => {
+    const { getByText } = render(<GroupsPage />);
 
-    render(<GroupsPage />);
+    const button = getByText("Create Group");
+    fireEvent.press(button);
 
-    await waitFor(() => {
-      expect(screen.getByText(/No groups/i)).toBeTruthy();
-    });
+    expect(getByText("Create a New Group")).toBeTruthy();
   });
 });
